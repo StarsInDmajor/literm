@@ -1,8 +1,8 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { File, Folder, FolderOpen, ChevronRight, ChevronDown, Home, ArrowLeft, Download } from 'lucide-svelte';
+  import { File, Folder, FolderOpen, ChevronRight, ChevronDown, Home, ArrowLeft, Download, Eye, EyeOff, FolderInput } from 'lucide-svelte';
   import { layoutStore } from '../../stores/layoutStore';
-  import { fileStore, filePathStore } from '../../stores/fileStore';
+  import { fileStore, filePathStore, explorerPathStore } from '../../stores/fileStore';
 
   export let id: string;
 
@@ -28,9 +28,16 @@
   let selectedNode: FileSystemNode | null = null;
   let loading = false;
   let error: string | null = null;
+  let showHidden = false;
+  let isChangeRootModalOpen = false;
+  let newRootPath = '';
 
   onMount(() => {
     console.log(`[FileExplorerPane ${id}] Mounted`);
+    const savedPath = explorerPathStore.getPath(id);
+    if (savedPath !== undefined) {
+        currentPath = savedPath;
+    }
     loadDirectory(currentPath);
   });
 
@@ -39,7 +46,7 @@
     error = null;
 
     try {
-      const response = await fetch(`/api/fs/list?path=${encodeURIComponent(path)}`);
+      const response = await fetch(`/api/fs/list?path=${encodeURIComponent(path)}&show_hidden=${showHidden}`);
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
@@ -48,6 +55,7 @@
 
       if (data.ok) {
         currentPath = data.path || path;
+        explorerPathStore.setPath(id, currentPath);
         const entries = data.entries || [];
 
         // Sort directories first, then files, both alphabetically
@@ -105,57 +113,11 @@
     selectedNode = node;
 
     if (node.type === 'dir') {
-      if (node.isExpanded) {
-        // Collapse directory
-        node.isExpanded = false;
-      } else {
-        // Expand directory
-        await expandDirectory(node);
-      }
+      // Enter the folder in the same pane
+      await loadDirectory(node.path);
     } else {
       // Handle file click - could open in preview pane or terminal
       handleFileClick(node);
-    }
-  }
-
-  async function expandDirectory(node: FileSystemNode) {
-    loading = true;
-
-    try {
-      const response = await fetch(`/api/fs/list?path=${encodeURIComponent(node.path)}`);
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-
-      const data = await response.json();
-
-      if (data.ok) {
-        const entries = data.entries || [];
-
-        // Sort directories first, then files
-        entries.sort((a: FileEntry, b: FileEntry) => {
-          if (a.entry_type !== b.entry_type) {
-            return a.entry_type === 'dir' ? -1 : 1;
-          }
-          return a.name.localeCompare(b.name);
-        });
-
-        node.children = entries.map((entry: FileEntry) => ({
-          name: entry.name,
-          path: node.path === '' ? entry.name : `${node.path}/${entry.name}`,
-          type: entry.entry_type,
-          size: entry.size,
-          mtime: entry.mtime,
-          children: entry.entry_type === 'dir' ? [] : undefined,
-          isExpanded: false
-        }));
-
-        node.isExpanded = true;
-      }
-    } catch (err) {
-      console.error(`[FileExplorerPane ${id}] Error expanding directory:`, err);
-    } finally {
-      loading = false;
     }
   }
 
@@ -174,33 +136,6 @@
     // Change pane type to preview and trigger file loading
     layoutStore.changePaneType(id, 'preview');
     fileStore.requestPreview(id, node.path);
-  }
-
-  function openFileInPane(node: FileSystemNode, paneType: 'preview' | 'terminal') {
-    // Split current pane horizontally to create a new pane
-    layoutStore.splitPane(id, 'horizontal');
-
-    // Since we can't get the new pane ID directly, we'll change the current pane type
-    // and use the file store to pass the file path
-    if (paneType === 'preview') {
-      // Change this pane to preview type
-      layoutStore.changePaneType(id, 'preview');
-      // Set the file path for this pane
-      filePathStore.setFilePath(id, node.path);
-      // Also trigger the file store for immediate loading
-      fileStore.requestPreview(id, node.path);
-    } else {
-      // Change this pane to terminal type
-      layoutStore.changePaneType(id, 'terminal');
-      // For terminal files, we could potentially send commands to open the file
-      console.log(`[FileExplorerPane ${id}] Opening ${node.path} in terminal`);
-    }
-  }
-
-  function openFileInTerminal(node: FileSystemNode) {
-    // Split current pane and open terminal
-    layoutStore.splitPane(id, 'horizontal');
-    console.log(`[FileExplorerPane ${id}] Opening ${node.path} in new terminal pane`);
   }
 
   async function downloadFile(node: FileSystemNode) {
@@ -264,6 +199,47 @@
     }
   }
 
+  async function toggleHiddenFiles() {
+    showHidden = !showHidden;
+    await refresh();
+  }
+
+  function openChangeRootModal() {
+    isChangeRootModalOpen = true;
+    newRootPath = '';
+  }
+
+  async function changeRootDirectory() {
+    if (!newRootPath) return;
+
+    try {
+        const response = await fetch('/api/fs/root', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ new_root: newRootPath })
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        if (data.ok) {
+            isChangeRootModalOpen = false;
+            // Refresh completely to go to new root
+            currentPath = '';
+            await loadDirectory('');
+        } else {
+            throw new Error('Failed to change root directory');
+        }
+    } catch (err) {
+        console.error(`[FileExplorerPane ${id}] Error changing root directory:`, err);
+        error = err instanceof Error ? err.message : 'Failed to change root directory';
+    }
+  }
+
   // Tree rendering function
   function renderTree(node: FileSystemNode, depth: number = 0): string {
     if (!node.children || node.children.length === 0) {
@@ -296,7 +272,7 @@
   }
 </script>
 
-<div class="flex flex-col h-full bg-primary-bg">
+<div class="flex flex-col h-full bg-primary-bg relative">
   <!-- Toolbar -->
   <div class="flex items-center justify-between px-3 py-2 border-b border-border-color bg-tertiary-bg">
     <div class="flex items-center space-x-2">
@@ -327,6 +303,26 @@
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
         </svg>
+      </button>
+      <div class="w-px h-4 bg-border-color mx-1"></div>
+      <button
+        class="p-1 hover:bg-secondary-bg rounded transition-colors"
+        class:text-accent-color={showHidden}
+        on:click={toggleHiddenFiles}
+        title={showHidden ? "Hide hidden files" : "Show hidden files"}
+      >
+        {#if showHidden}
+            <Eye size={14} />
+        {:else}
+            <EyeOff size={14} />
+        {/if}
+      </button>
+      <button
+        class="p-1 hover:bg-secondary-bg rounded transition-colors"
+        on:click={openChangeRootModal}
+        title="Change root directory"
+      >
+        <FolderInput size={14} />
       </button>
     </div>
     <div class="text-sm text-secondary-text font-medium">
@@ -470,4 +466,47 @@
       </div>
     {/if}
   </div>
+
+  <!-- Change Root Modal -->
+  {#if isChangeRootModalOpen}
+    <div class="absolute inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+        <div class="bg-secondary-bg border border-border-color rounded-lg shadow-xl w-full max-w-sm overflow-hidden">
+            <div class="px-4 py-3 border-b border-border-color bg-tertiary-bg flex justify-between items-center">
+                <h3 class="font-semibold text-primary-text">Change Root Directory</h3>
+                <button 
+                    class="text-secondary-text hover:text-primary-text"
+                    on:click={() => isChangeRootModalOpen = false}
+                >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M18 6L6 18M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="p-4">
+                <p class="text-xs text-secondary-text mb-2">Enter absolute path for new root:</p>
+                <input 
+                    type="text" 
+                    bind:value={newRootPath}
+                    class="w-full px-3 py-2 bg-primary-bg border border-border-color rounded text-primary-text focus:outline-none focus:ring-1 focus:ring-accent-color text-sm"
+                    placeholder="/home/user/..."
+                    on:keydown={(e) => e.key === 'Enter' && changeRootDirectory()}
+                />
+            </div>
+            <div class="px-4 py-3 bg-tertiary-bg flex justify-end gap-2">
+                <button 
+                    class="px-3 py-1.5 text-xs bg-secondary-bg hover:bg-primary-bg border border-border-color rounded transition-colors"
+                    on:click={() => isChangeRootModalOpen = false}
+                >
+                    Cancel
+                </button>
+                <button 
+                    class="px-3 py-1.5 text-xs bg-accent-color hover:bg-blue-600 text-white rounded transition-colors"
+                    on:click={changeRootDirectory}
+                >
+                    Change
+                </button>
+            </div>
+        </div>
+    </div>
+  {/if}
 </div>

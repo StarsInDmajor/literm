@@ -99,7 +99,7 @@ function createLayoutStore() {
     subscribe,
 
     // 核心功能：拆分 Pane
-    splitPane: (targetId: string, direction: Direction) => {
+    splitPane: (targetId: string, direction: Direction, contentType: ContentType = 'terminal', config: Record<string, any> = { title: 'Terminal' }) => {
       console.log(`[LayoutStore] Splitting pane ${targetId} in direction ${direction}`);
       update(root => {
         return updateNodeInTree(root, targetId, (node) => {
@@ -113,7 +113,7 @@ function createLayoutStore() {
           const newPaneId = uuidv4();
           console.log(`[LayoutStore] Creating new container ${newContainerId} with new pane ${newPaneId}`);
 
-          // 创建一个新的容器，包含原有的 Pane 和一个新的 Terminal Pane
+          // 创建一个新的容器，包含原有的 Pane 和一个新的 Pane
           const newContainer: LayoutNode = {
             id: newContainerId,
             type: 'container',
@@ -123,10 +123,8 @@ function createLayoutStore() {
               {
                 id: newPaneId,
                 type: 'pane',
-                contentType: 'terminal', // New pane defaults to terminal
-                config: {
-                  title: 'Terminal'
-                }
+                contentType: contentType,
+                config: config
               }
             ]
           };

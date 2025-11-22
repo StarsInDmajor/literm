@@ -19,6 +19,7 @@
     background: '#1a1b26', // Primary background color
     foreground: '#c0caf5', // Primary text color
     cursor: '#7aa2f7', // Accent color
+    cursorAccent: '#1a1b26', // Text color under cursor (matches background)
     selectionBackground: '#545c7e',
     black: '#1a1b26',
     red: '#f7768e',
@@ -42,6 +43,7 @@
     background: '#ffffff', // Primary background color
     foreground: '#333333', // Primary text color
     cursor: '#007bff', // Accent color
+    cursorAccent: '#ffffff', // Text color under cursor (matches background)
     selectionBackground: '#d4e0ff',
     black: '#000000',
     red: '#dc3545',

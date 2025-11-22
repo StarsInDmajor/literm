@@ -1,8 +1,9 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { Download, Eye, FileText, Image as ImageIcon, ArrowLeft } from 'lucide-svelte';
+  import { Download, Eye, FileText, Image as ImageIcon, ArrowLeft, Database } from 'lucide-svelte';
   import { fileStore, filePathStore } from '../../stores/fileStore';
   import { layoutStore } from '../../stores/layoutStore';
+  import Hdf5Viewer from './Hdf5Viewer.svelte';
 
   export let id: string;
   let filePath: string | null = null;
@@ -12,6 +13,7 @@
   let content: string | null = null;
   let contentType: string | null = null;
   let fileUrl: string | null = null;
+  let hdf5Data: any = null;
 
   // React to file changes from the file store
   $: if ($fileStore && $fileStore.paneId === id) {
@@ -33,6 +35,7 @@
     content = null;
     contentType = null;
     fileUrl = null;
+    hdf5Data = null;
 
     try {
       const extension = path.split('.').pop()?.toLowerCase();
@@ -55,6 +58,20 @@
           if (data.ok) {
             content = data.content;
           }
+        }
+      } else if (['h5', 'hdf5'].includes(extension || '')) {
+        // HDF5 file
+        contentType = 'hdf5';
+        const response = await fetch(`/api/fs/hdf5/preview?path=${encodeURIComponent(path)}`);
+        if (response.ok) {
+            const data = await response.json();
+            if (data.ok) {
+                hdf5Data = data.root;
+            } else {
+                error = "Failed to load HDF5 data";
+            }
+        } else {
+            error = `Server returned ${response.status}`;
         }
       } else {
         // Text file
@@ -185,6 +202,8 @@
         <ImageIcon size={16} class="text-blue-500" />
       {:else if contentType === 'pdf'}
         <FileText size={16} class="text-red-500" />
+      {:else if contentType === 'hdf5'}
+        <Database size={16} class="text-green-500" />
       {:else}
         <Eye size={16} class="text-green-500" />
       {/if}
@@ -243,6 +262,14 @@
         <div class="prose prose-base max-w-none text-primary-text">
           {@html renderMarkdown(content)}
         </div>
+      </div>
+    {:else if contentType === 'hdf5' && hdf5Data}
+      <div class="h-full overflow-auto p-2">
+        <div class="mb-4 pb-2 border-b border-border-color">
+            <h3 class="text-lg font-semibold">HDF5 Structure</h3>
+            <p class="text-xs text-secondary-text">Hierarchy of groups and datasets</p>
+        </div>
+        <Hdf5Viewer node={hdf5Data} />
       </div>
     {:else if contentType === 'text' && content}
       <div class="h-full p-4 overflow-auto">
