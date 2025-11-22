@@ -1,0 +1,12 @@
+[server]
+bind_addr = "127.0.0.1"
+port = 3000
+root_dir = "data"
+session_timeout_minutes = 60
+
+[auth]
+password_hash = "$argon2i$v=19$m=65536,t=3,p=4$jXU+9F760B6v0OLoJKuvog$5zUhMf862eUoxoeJyd+Xt+ttp+SimfSWV3pnLlvgpe4"
+
+[features]
+enable_hdf5 = false
+enable_watch = true

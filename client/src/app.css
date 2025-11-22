@@ -1,0 +1,160 @@
+/* 引入 xterm 样式 */
+@import 'xterm/css/xterm.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Maple Mono Nerd Font CN */
+@font-face {
+  font-family: 'Maple Mono';
+  src: url('/fonts/MapleMono-NF-CN-Thin.woff2') format('woff2');
+  font-weight: 100;
+  font-style: normal;
+}
+@font-face {
+  font-family: 'Maple Mono';
+  src: url('/fonts/MapleMono-NF-CN-ThinItalic.woff2') format('woff2');
+  font-weight: 100;
+  font-style: italic;
+}
+@font-face {
+  font-family: 'Maple Mono';
+  src: url('/fonts/MapleMono-NF-CN-ExtraLight.woff2') format('woff2');
+  font-weight: 200;
+  font-style: normal;
+}
+@font-face {
+  font-family: 'Maple Mono';
+  src: url('/fonts/MapleMono-NF-CN-ExtraLightItalic.woff2') format('woff2');
+  font-weight: 200;
+  font-style: italic;
+}
+@font-face {
+  font-family: 'Maple Mono';
+  src: url('/fonts/MapleMono-NF-CN-Light.woff2') format('woff2');
+  font-weight: 300;
+  font-style: normal;
+}
+@font-face {
+  font-family: 'Maple Mono';
+  src: url('/fonts/MapleMono-NF-CN-LightItalic.woff2') format('woff2');
+  font-weight: 300;
+  font-style: italic;
+}
+@font-face {
+  font-family: 'Maple Mono';
+  src: url('/fonts/MapleMono-NF-CN-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+}
+@font-face {
+  font-family: 'Maple Mono';
+  src: url('/fonts/MapleMono-NF-CN-Italic.woff2') format('woff2');
+  font-weight: 400;
+  font-style: italic;
+}
+@font-face {
+  font-family: 'Maple Mono';
+  src: url('/fonts/MapleMono-NF-CN-Medium.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+}
+@font-face {
+  font-family: 'Maple Mono';
+  src: url('/fonts/MapleMono-NF-CN-MediumItalic.woff2') format('woff2');
+  font-weight: 500;
+  font-style: italic;
+}
+@font-face {
+  font-family: 'Maple Mono';
+  src: url('/fonts/MapleMono-NF-CN-SemiBold.woff2') format('woff2');
+  font-weight: 600;
+  font-style: normal;
+}
+@font-face {
+  font-family: 'Maple Mono';
+  src: url('/fonts/MapleMono-NF-CN-SemiBoldItalic.woff2') format('woff2');
+  font-weight: 600;
+  font-style: italic;
+}
+@font-face {
+  font-family: 'Maple Mono';
+  src: url('/fonts/MapleMono-NF-CN-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+}
+@font-face {
+  font-family: 'Maple Mono';
+  src: url('/fonts/MapleMono-NF-CN-BoldItalic.woff2') format('woff2');
+  font-weight: 700;
+  font-style: italic;
+}
+@font-face {
+  font-family: 'Maple Mono';
+  src: url('/fonts/MapleMono-NF-CN-ExtraBold.woff2') format('woff2');
+  font-weight: 800;
+  font-style: normal;
+}
+@font-face {
+  font-family: 'Maple Mono';
+  src: url('/fonts/MapleMono-NF-CN-ExtraBoldItalic.woff2') format('woff2');
+  font-weight: 800;
+  font-style: italic;
+}
+
+:root {
+  --font-family-mono: 'Maple Mono', "JetBrains Mono", monospace;
+  --font-weight-mono: 400;
+  --line-height-mono: 1.2;
+
+  /* Default Dark Theme */
+  --bg-color-primary: #1a1b26;
+  --bg-color-secondary: #1f2335;
+  --bg-color-tertiary: #24283b;
+  --text-color-primary: #c0caf5;
+  --text-color-secondary: #a9b1d6;
+  --border-color: #414868;
+  --accent-color: #7aa2f7;
+}
+
+.theme-light {
+  --bg-color-primary: #ffffff;
+  --bg-color-secondary: #f0f0f0;
+  --bg-color-tertiary: #e0e0e0;
+  --text-color-primary: #333333;
+  --text-color-secondary: #555555;
+  --border-color: #cccccc;
+  --accent-color: #007bff;
+}
+
+html, body {
+  height: 100%;
+  width: 100%;
+  margin: 0;
+  overflow: hidden;
+  background-color: var(--bg-color-primary);
+  color: var(--text-color-primary);
+  font-family: var(--font-family-mono);
+  font-weight: var(--font-weight-mono);
+  line-height: var(--line-height-mono);
+}
+
+/* Apply theme colors to relevant components */
+.theme-dark .text-white { color: var(--text-color-primary); }
+.theme-dark .bg-[#1a1b26] { background-color: var(--bg-color-primary); }
+.theme-dark .bg-[#1f2335] { background-color: var(--bg-color-secondary); }
+.theme-dark .bg-[#24283b] { background-color: var(--bg-color-tertiary); }
+.theme-dark .border-gray-700 { border-color: var(--border-color); }
+.theme-dark .text-gray-300 { color: var(--text-color-secondary); }
+.theme-dark .text-blue-400 { color: var(--accent-color); }
+.theme-dark .bg-blue-600 { background-color: var(--accent-color); }
+
+.theme-light .text-white { color: var(--text-color-primary); }
+.theme-light .bg-[#1a1b26] { background-color: var(--bg-color-primary); }
+.theme-light .bg-[#1f2335] { background-color: var(--bg-color-secondary); }
+.theme-light .bg-[#24283b] { background-color: var(--bg-color-tertiary); }
+.theme-light .border-gray-700 { border-color: var(--border-color); }
+.theme-light .text-gray-300 { color: var(--text-color-secondary); }
+.theme-light .text-blue-400 { color: var(--accent-color); }
+.theme-light .bg-blue-600 { background-color: var(--accent-color); }
