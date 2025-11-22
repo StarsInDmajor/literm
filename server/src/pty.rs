@@ -38,7 +38,8 @@ impl PtyManager {
             .ok()
             .filter(|s| !s.trim().is_empty())
             .unwrap_or_else(|| "/bin/bash".into());
-        let cmd = CommandBuilder::new(shell);
+        let mut cmd = CommandBuilder::new(shell);
+        cmd.env("TERM", "xterm-256color");
         let child = slave.spawn_command(cmd)?;
         let reader = master.try_clone_reader()?;
         let writer = master.take_writer()?;

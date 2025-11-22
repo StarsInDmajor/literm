@@ -25,6 +25,9 @@ pub enum AppError {
 
     #[error("internal error: {0}")]
     Internal(String),
+
+    #[error("hdf5 error: {0}")]
+    Hdf5(#[from] hdf5::Error),
 }
 
 #[derive(Serialize)]
@@ -40,7 +43,8 @@ impl IntoResponse for AppError {
             AppError::Config(_)
             | AppError::Internal(_)
             | AppError::Io(_)
-            | AppError::Toml(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            | AppError::Toml(_)
+            | AppError::Hdf5(_) => StatusCode::INTERNAL_SERVER_ERROR,
         };
 
         let body = Json(ErrorBody {

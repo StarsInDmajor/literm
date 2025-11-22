@@ -3,7 +3,7 @@ use axum::{
     body::Body,
     extract::{Query, State},
     http::{header, HeaderMap, HeaderValue},
-    routing::get,
+    routing::{get, post},
     Json, Router,
 };
 use mime_guess::MimeGuess;
@@ -17,11 +17,13 @@ pub fn router() -> Router<AppState> {
         .route("/api/fs/list", get(list_handler))
         .route("/api/fs/content", get(content_handler))
         .route("/api/fs/raw", get(raw_handler))
+        .route("/api/fs/root", post(change_root_handler))
 }
 
 #[derive(Debug, Deserialize)]
 pub struct FsListQuery {
     pub path: Option<String>,
+    pub show_hidden: Option<bool>,
 }
 
 #[derive(Debug, Serialize)]
@@ -45,10 +47,18 @@ pub async fn list_handler(
 ) -> Result<Json<FsListResponse>, AppError> {
     let rel = query.path.unwrap_or_default();
     let resolved = state.fs.resolve_path(&rel)?;
+    let show_hidden = query.show_hidden.unwrap_or(false);
 
     let mut entries_res = Vec::new();
     let mut dir = fs::read_dir(&resolved).await?;
     while let Some(entry) = dir.next_entry().await? {
+        let name = entry.file_name().to_string_lossy().to_string();
+        
+        // Filter hidden files if not requested
+        if !show_hidden && name.starts_with('.') {
+            continue;
+        }
+
         let metadata = entry.metadata().await?;
         let file_type = if metadata.is_dir() { "dir" } else { "file" };
         let size = metadata.len();
@@ -58,7 +68,6 @@ pub async fn list_handler(
             .duration_since(UNIX_EPOCH)
             .unwrap_or_default()
             .as_secs();
-        let name = entry.file_name().to_string_lossy().to_string();
 
         entries_res.push(FsEntry {
             name,
@@ -119,4 +128,26 @@ pub async fn raw_handler(
     );
 
     Ok((headers, body))
+}
+
+#[derive(Debug, Deserialize)]
+pub struct ChangeRootRequest {
+    pub new_root: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct ChangeRootResponse {
+    pub ok: bool,
+    pub new_root: String,
+}
+
+pub async fn change_root_handler(
+    State(state): State<AppState>,
+    Json(req): Json<ChangeRootRequest>,
+) -> Result<Json<ChangeRootResponse>, AppError> {
+    let new_root = state.fs.set_root(&req.new_root)?;
+    Ok(Json(ChangeRootResponse {
+        ok: true,
+        new_root: new_root.to_string_lossy().to_string(),
+    }))
 }
